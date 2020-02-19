@@ -2,7 +2,7 @@
 
   The MIT License (MIT)
 
-  Copyright (c) 2016 Srujith,whatnick,Ryzee and Arun
+  Copyright (c) 2019 Srujith,whatnick,Ryzee and Arun
 
   Modified to use with the CircuitSetup.us Split Phase Energy Meter by jdeglavina
 
