@@ -1,10 +1,26 @@
 #include "ATM90E36.h"
 
-ATM90E36::ATM90E36(int pin) 	// Object
+ATM90E36::ATM90E36(int pin, unsigned short lineFreq, unsigned short pgagain, unsigned short ugain, unsigned short igainA, unsigned short igainB, unsigned short igainC) 	// Object
 {
   //energy_IRQ = 2; 	// (In development...)
   _energy_CS = pin; 	// SS PIN
   //energy_WO = 8; 		// (In development...)
+  _lineFreq = lineFreq;
+  _pgagain = pgagain;
+  _ugain = ugain;
+  _igainA = igainA;
+  _igainB = igainB;
+  _igainC = igainC;
+}
+
+unsigned short ATM90E36::WriteAndGetCheckSum(unsigned char RW, unsigned short address, unsigned short val, unsigned short checksum) 
+{
+  CommEnergyIC(RW, address, val);
+  unsigned char higherChecksum = checksum >> 8;
+  unsigned char lowerChecksum = checksum & 0xFF;
+  higherChecksum ^= (val >> 8) ^ (val & 0xFF);
+  lowerChecksum += (val >> 8) + (val & 0xFF);
+  return higherChecksum << 8 | lowerChecksum;
 }
 
 /* CommEnergyIC - Communication Establishment */
@@ -26,7 +42,7 @@ unsigned short ATM90E36::CommEnergyIC(unsigned char RW, unsigned short address, 
 #endif
 
 #if defined(ESP8266)
-  SPISettings settings(200000, MSBFIRST, SPI_MODE2);
+  SPISettings settings(200000, MSBFIRST, SPI_MODE3);
 #endif
 
 #if defined(ARDUINO_ARCH_SAMD)
@@ -409,6 +425,24 @@ bool ATM90E36::calibrationError()
 */
 void ATM90E36::begin()
 {  
+  unsigned short vSagTh;
+  unsigned short sagV;
+  unsigned short FreqHiThresh;
+  unsigned short FreqLoThresh;
+  if (_lineFreq == 4485 || _lineFreq == 5231)
+  {
+    sagV = 90;
+    FreqHiThresh = 61 * 100;
+    FreqLoThresh = 59 * 100;
+  }
+  else
+  {
+    sagV = 190;
+	FreqHiThresh = 51 * 100;
+    FreqLoThresh = 49 * 100;
+  }
+
+  vSagTh = (sagV * 100 * sqrt(2)) / (2 * _ugain / 32768);
   // pinMode(energy_IRQ, INPUT); // (In development...)
   pinMode(_energy_CS, OUTPUT);
   // pinMode(energy_WO, INPUT);  // (In development...)
@@ -424,23 +458,24 @@ void ATM90E36::begin()
   CommEnergyIC(WRITE, SoftReset, 0x789A);   // Perform soft reset
   CommEnergyIC(WRITE, FuncEn0, 0x0000);     // Voltage sag
   CommEnergyIC(WRITE, FuncEn1, 0x0000);     // Voltage sag
-  CommEnergyIC(WRITE, SagTh, 0x0001);       // Voltage sag threshold
+  CommEnergyIC(WRITE, SagTh, vSagTh);       // Voltage sag threshold
 
   /* SagTh = Vth * 100 * sqrt(2) / (2 * Ugain / 32768) */
   
+  short unsigned int checksum = 0;
   //Set metering config values (CONFIG)
-  CommEnergyIC(WRITE, ConfigStart, 0x5678); // Metering calibration startup 
-  CommEnergyIC(WRITE, PLconstH, 0x0861);    // PL Constant MSB (default)
-  CommEnergyIC(WRITE, PLconstL, 0xC468);    // PL Constant LSB (default)
-  CommEnergyIC(WRITE, MMode0, 0x1087);      // Mode Config (60 Hz, 3P4W)
-  CommEnergyIC(WRITE, MMode1, 0x1500);      // 0x5555 (x2) // 0x0000 (1x)
-  CommEnergyIC(WRITE, PStartTh, 0x0000);    // Active Startup Power Threshold
-  CommEnergyIC(WRITE, QStartTh, 0x0000);    // Reactive Startup Power Threshold
-  CommEnergyIC(WRITE, SStartTh, 0x0000);    // Apparent Startup Power Threshold
-  CommEnergyIC(WRITE, PPhaseTh, 0x0000);    // Active Phase Threshold
-  CommEnergyIC(WRITE, QPhaseTh, 0x0000);    // Reactive Phase Threshold
-  CommEnergyIC(WRITE, SPhaseTh, 0x0000);    // Apparent  Phase Threshold
-  CommEnergyIC(WRITE, CSZero, 0x4741);      // Checksum 0
+  checksum = WriteAndGetCheckSum(WRITE, ConfigStart, 0x5678, checksum); // Metering calibration startup 
+  checksum = WriteAndGetCheckSum(WRITE, PLconstH, 0x0861, checksum);    // PL Constant MSB (default)
+  checksum = WriteAndGetCheckSum(WRITE, PLconstL, 0xC468, checksum);    // PL Constant LSB (default)
+  checksum = WriteAndGetCheckSum(WRITE, MMode0, _lineFreq, checksum);      // Mode Config (60 Hz, 3P4W)
+  checksum = WriteAndGetCheckSum(WRITE, MMode1, _pgagain, checksum);      // 0x5555 (x2) // 0x0000 (1x)
+  checksum = WriteAndGetCheckSum(WRITE, PStartTh, 0x1D4C, checksum);    // Active Startup Power Threshold
+  checksum = WriteAndGetCheckSum(WRITE, QStartTh, 0x1D4C, checksum);    // Reactive Startup Power Threshold
+  checksum = WriteAndGetCheckSum(WRITE, SStartTh, 0x1D4C, checksum);    // Apparent Startup Power Threshold
+  checksum = WriteAndGetCheckSum(WRITE, PPhaseTh, 0x02EE, checksum);    // Active Phase Threshold
+  checksum = WriteAndGetCheckSum(WRITE, QPhaseTh, 0x02EE, checksum);    // Reactive Phase Threshold
+  checksum = WriteAndGetCheckSum(WRITE, SPhaseTh, 0x02EE, checksum);    // Apparent  Phase Threshold
+  WriteAndGetCheckSum(WRITE, CSZero, checksum, checksum);      // Checksum 0
   
   //Set metering calibration values (CALIBRATION)
   CommEnergyIC(WRITE, CalStart, 0x5678);    // Metering calibration startup 
@@ -468,28 +503,29 @@ void ATM90E36::begin()
   CommEnergyIC(WRITE, PGainCF, 0x0000);     // C Fund. active power gain
   CommEnergyIC(WRITE, CSTwo, 0x0000);       // Checksum 2 
 
+  checksum = 0;
   //Set measurement calibration values (ADJUST)
-  CommEnergyIC(WRITE, AdjStart, 0x5678);    // Measurement calibration
-  CommEnergyIC(WRITE, UgainA, 0x0002);      // A SVoltage rms gain
-  CommEnergyIC(WRITE, IgainA, 0xFD7F);      // A line current gain
-  CommEnergyIC(WRITE, UoffsetA, 0x0000);    // A Voltage offset
-  CommEnergyIC(WRITE, IoffsetA, 0x0000);    // A line current offset
-  CommEnergyIC(WRITE, UgainB, 0x0002);      // B Voltage rms gain
-  CommEnergyIC(WRITE, IgainB, 0xFD7F);      // B line current gain
-  CommEnergyIC(WRITE, UoffsetB, 0x0000);    // B Voltage offset
-  CommEnergyIC(WRITE, IoffsetB, 0x0000);    // B line current offset
-  CommEnergyIC(WRITE, UgainC, 0x0002);      // C Voltage rms gain
-  CommEnergyIC(WRITE, IgainC, 0xFD7F);      // C line current gain
-  CommEnergyIC(WRITE, UoffsetC, 0x0000);    // C Voltage offset
-  CommEnergyIC(WRITE, IoffsetC, 0x0000);    // C line current offset
-  CommEnergyIC(WRITE, IgainN, 0xFD7F);      // C line current gain
-  CommEnergyIC(WRITE, CSThree, 0x02F6);     // Checksum 3
+  checksum = WriteAndGetCheckSum(WRITE, AdjStart, 0x5678, checksum);    // Measurement calibration
+  checksum = WriteAndGetCheckSum(WRITE, UgainA, _ugain, checksum);      // A SVoltage rms gain
+  checksum = WriteAndGetCheckSum(WRITE, IgainA, _igainA, checksum);      // A line current gain
+  checksum = WriteAndGetCheckSum(WRITE, UoffsetA, 0x0000, checksum);    // A Voltage offset
+  checksum = WriteAndGetCheckSum(WRITE, IoffsetA, 0x0000, checksum);    // A line current offset
+  checksum = WriteAndGetCheckSum(WRITE, UgainB, _ugain, checksum);      // B Voltage rms gain
+  checksum = WriteAndGetCheckSum(WRITE, IgainB, _igainB, checksum);      // B line current gain
+  checksum = WriteAndGetCheckSum(WRITE, UoffsetB, 0x0000, checksum);    // B Voltage offset
+  checksum = WriteAndGetCheckSum(WRITE, IoffsetB, 0x0000, checksum);    // B line current offset
+  checksum = WriteAndGetCheckSum(WRITE, UgainC, _ugain, checksum);      // C Voltage rms gain
+  checksum = WriteAndGetCheckSum(WRITE, IgainC, _igainC, checksum);      // C line current gain
+  checksum = WriteAndGetCheckSum(WRITE, UoffsetC, 0x0000, checksum);    // C Voltage offset
+  checksum = WriteAndGetCheckSum(WRITE, IoffsetC, 0x0000, checksum);    // C line current offset
+  checksum = WriteAndGetCheckSum(WRITE, IgainN, 0xFD7F, checksum);      // C line current gain
+  checksum = WriteAndGetCheckSum(WRITE, CSThree, checksum, checksum);     // Checksum 3
 
   // Done with the configuration
-  CommEnergyIC(WRITE, ConfigStart, 0x5678);
-  CommEnergyIC(WRITE, CalStart, 0x5678);    // 0x6886 //0x5678 //8765);
-  CommEnergyIC(WRITE, HarmStart, 0x5678);   // 0x6886 //0x5678 //8765);    
-  CommEnergyIC(WRITE, AdjStart, 0x5678);    // 0x6886 //0x5678 //8765);  
+  CommEnergyIC(WRITE, ConfigStart, 0x8765);
+  CommEnergyIC(WRITE, CalStart, 0x8765);    // 0x6886 //0x5678 //8765);
+  CommEnergyIC(WRITE, HarmStart, 0x8765);   // 0x6886 //0x5678 //8765);    
+  CommEnergyIC(WRITE, AdjStart, 0x8765);    // 0x6886 //0x5678 //8765);  
 
   CommEnergyIC(WRITE, SoftReset, 0x789A);   // Perform soft reset  
 }

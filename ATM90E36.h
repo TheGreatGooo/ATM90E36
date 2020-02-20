@@ -231,10 +231,17 @@
 	class ATM90E36
 	{
 	private:
-		int _energy_CS;		
+		int _energy_CS;
+		unsigned short _lineFreq;
+		unsigned short _pgagain;
+		unsigned short _ugain;
+		unsigned short _igainA;
+		unsigned short _igainB;
+		unsigned short _igainC;
 		unsigned short CommEnergyIC(unsigned char RW, unsigned short address, unsigned short val);
+                unsigned short WriteAndGetCheckSum(unsigned char RW, unsigned short address, unsigned short val, unsigned short checksum);
 	public:
-		ATM90E36(int pin);
+		ATM90E36(int pin, unsigned short lineFreq, unsigned short pgagain, unsigned short ugain, unsigned short igainA, unsigned short igainB, unsigned short igainC);
 
 		/* Initialization Functions */	
 		void begin();

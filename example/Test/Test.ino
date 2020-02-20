@@ -13,17 +13,25 @@
 #include <SPI.h>
 #include <ATM90E36.h>
 
-ATM90E36 eic(10);
+#define DEBUG_SERIAL
+
+unsigned short LineFreq = 4485;
+unsigned short PGAGain = 21;
+unsigned short VoltageGain = 29462;
+unsigned short CurrentGainSCT013 = 25498;
+ATM90E36 eic(15, LineFreq, PGAGain, VoltageGain, CurrentGainSCT013, CurrentGainSCT013, CurrentGainSCT013);
 
 void setup() {
+  Serial.println("Ready....");
   /* Initialize the serial port to host */
   Serial.begin(115200);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB
-  }
+  
   Serial.println("Start ATM90E36");
   /*Initialise the ATM90E36 + SPI port */
+  delay(5000);
   eic.begin();
+  delay(1000);
+  eic.calibrationError();
   delay(1000);
 }
 
