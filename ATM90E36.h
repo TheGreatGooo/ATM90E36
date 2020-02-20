@@ -1,18 +1,3 @@
-/* ATM90E36 Energy Monitor Functions
-
-The MIT License (MIT)
-
-  Copyright (c) 2019 Srujith,whatnick,Ryzee and Arun
-  
-  Modified to use with the CircuitSetup.us Split Phase Energy Meter by jdeglavina
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
 #ifndef ATM90E36_h
 #define ATM90E36_h
 #include <Arduino.h>
@@ -20,36 +5,23 @@ The MIT License (MIT)
 
 #define WRITE 0 // WRITE SPI
 #define READ 1 	// READ SPI
-#define DEBUG_SERIAL 1
+#define DEBUG_SERIAL
 
 /* STATUS REGISTERS */
-#define MeterEn 0x00 		// Metering Enable
-#define ChannelMapI 0x01 	// Current Channel Mapping Configuration
-#define ChannelMapU 0x02 	// Voltage Channel Mapping Configuration
-#define SagPeakDetCfg 0x05 	// Sag and Peak Detector Period Configuration
-#define OVth 0x06 			// Over Voltage Threshold
+#define SoftReset 0x00 		// Software Reset
+#define SysStatus0 0x01 	// System Status0
+#define SysStatus1 0x02 	// System Status1
+#define FuncEn0 0x03 		// Function Enable0
+#define FuncEn1 0x04 		// Function Enable1
 #define ZXConfig 0x07 		// Zero-Crossing Config
 #define SagTh 0x08 			// Voltage Sag Th
 #define PhaseLossTh 0x09 	// Voltage Phase Losing Th
-#define INWarnTh 0x0A 		// Neutral Current (Calculated) Warning Threshold
-#define OIth 0x0B 			// Over Current Threshold
-#define FreqLoTh 0x0C		// Low Threshold for Frequency Detection
-#define FreqHiTh 0x0D		// High Threshold for Frequency Detection
-#define PMPwrCtrl 0x0E		// Partial Measurement Mode Power Control
-#define IRQ0MergeCfg 0x0F 	// IRQ0 Merge Configuration
-
-/* EMM STATUS REGISTERS */
-#define SoftReset 0x70		// Software Reset
-#define EMMState0 0x71		// EMM State 0
-#define EMMState1 0x72		// EMM State 1
-#define EMMIntState0 0x73   // EMM Interrupt Status 0
-#define EMMIntState1 0x74   // EMM Interrupt Status 1
-#define EMMIntEn0 0x75		// EMM Interrupt Enable 0
-#define EMMIntEn1 0x76		// EMM Interrupt Enable 1
-#define LastSPIData 0x78	// Last Read/Write SPI Value
-#define CRCErrStatus 0x79	// CRC Error Status
-#define CRCDigest 0x7A		// CRC Digest
-#define CfgRegAccEn 0x7F	// Configure Register Access Enable
+#define INWarnTh0 0x0A 		// N Current Line Th
+#define INWarnTh1 0x0B 		// Voltage ADC Th
+#define THDNUTh 0x0C		// Voltage THD Th
+#define THDNITh 0x0D		// Current THD Th
+#define DMACtrl 0x0E		// DMA Int. Control 
+#define LastSPIData 0x0F 	// Last Read/Write SPI Value
 
 /* LOW POWER MODE REGISTERS - NOT USED */
 #define DetectCtrl 0x10
@@ -68,40 +40,47 @@ The MIT License (MIT)
 #define PMIrmsLSB 0x1D
 
 /* CONFIGURATION REGISTERS */
+#define ConfigStart 0x30 	// Configuration Start
 #define PLconstH 0x31 		// High Word of PL_Constant
 #define PLconstL 0x32 		// Low Word of PL_Constant
 #define MMode0 0x33 		// Metering Mode Config
-#define MMode1 0x34 		// PGA Gain Configuration for Current Channels
+#define MMode1 0x34 		// Metering Mode Config
 #define PStartTh 0x35 		// Startup Power Th (P)
 #define QStartTh 0x36 		// Startup Power Th (Q)
 #define SStartTh 0x37		// Startup Power Th (S)
 #define PPhaseTh 0x38 		// Startup Power Accum Th (P)
 #define QPhaseTh 0x39		// Startup Power Accum Th (Q)
 #define SPhaseTh 0x3A		// Startup Power Accum Th (S)
+#define CSZero 0x3B			// Checksum 0
 
 /* CALIBRATION REGISTERS */
+#define CalStart 0x40 		// Cal Start
 #define PoffsetA 0x41 		// A Line Power Offset (P)
 #define QoffsetA 0x42 		// A Line Power Offset (Q)
 #define PoffsetB 0x43 		// B Line Power Offset (P)
 #define QoffsetB 0x44 		// B Line Power Offset (Q)
 #define PoffsetC 0x45 		// C Line Power Offset (P)
 #define QoffsetC 0x46 		// C Line Power Offset (Q)
-#define PQGainA 0x47 		// A Line Calibration Gain
+#define GainA 0x47 			// A Line Calibration Gain
 #define PhiA 0x48  			// A Line Calibration Angle
-#define PQGainB 0x49 		// B Line Calibration Gain
+#define GainB 0x49 			// B Line Calibration Gain
 #define PhiB 0x4A  			// B Line Calibration Angle
-#define PQGainC 0x4B 		// C Line Calibration Gain
+#define GainC 0x4B 			// C Line Calibration Gain
 #define PhiC 0x4C  			// C Line Calibration Angle
+#define CSOne 0x4D 			// Checksum 1
 
-/* FUNDAMENTAL/HARMONIC ENERGY CALIBRATION REGISTERS */
+/* HARMONIC & ENERGY REGISTERS */
+#define HarmStart 0x50		// Harmonic Cal Start
 #define	POffsetAF 0x51		// A Fund Power Offset (P)
 #define POffsetBF 0x52		// B Fund Power Offset (P)
 #define	POffsetCF 0x53		// C Fund Power Offset (P)
 #define PGainAF	0x54		// A Fund Power Gain (P)
 #define	PGainBF	0x55		// B Fund Power Gain (P)
 #define PGainCF	0x56		// C Fund Power Gain (P)
+#define CSTwo 0x57 			// Checksum 2
 
 /* MEASUREMENT CALIBRATION REGISTERS */
+#define AdjStart 0x60 		// Measurement Cal Start
 #define UgainA 0x61 		// A Voltage RMS Gain
 #define IgainA 0x62 		// A Current RMS Gain
 #define UoffsetA 0x63 		// A Voltage Offset
@@ -114,7 +93,9 @@ The MIT License (MIT)
 #define IgainC 0x6A 		// C Current RMS Gain
 #define UoffsetC 0x6B 		// C Voltage Offset
 #define IoffsetC 0x6C 		// C Current Offset
+#define IgainN 0x6D 		// N Current Gain
 #define IoffsetN 0x6E 		// N Current Offset
+#define CSThree 0x6F 		// Checksum 3
 
 /* ENERGY REGISTERS */
 #define APenergyT 0x80 		// Total Forward Active	
@@ -138,7 +119,13 @@ The MIT License (MIT)
 #define SenergyA 0x91  		// A Apparent Energy		
 #define SenergyB 0x92 		// B Apparent Energy
 #define SenergyC 0x93 		// C Apparent Energy
+#define SVenergyT 0x94 		// Total Apparent Energy (Arit)
 
+#define EnStatus0 0x95 		// Metering Status 0
+#define EnStatus1 0x96 		// Metering Status 1
+///////////////// 0x97	    // Reserved Register 
+#define SVmeanT 0x98  		// Total Apparent Energy (Vect)
+#define SVmeanTLSB 0x99		// LSB of Vector Sum
 
 /* FUNDAMENTAL / HARMONIC ENERGY REGISTERS */
 #define APenergyTF 0xA0 	// Total Forward Fund. Energy
@@ -159,8 +146,8 @@ The MIT License (MIT)
 #define ANenergyCH 0xAF  	// C Reverse Harm. Energy
 
 /* POWER & P.F. REGISTERS */
-#define PmeanA 0xB1 		// A Mean Power (P)
 #define PmeanT 0xB0 		// Total Mean Power (P)
+#define PmeanA 0xB1 		// A Mean Power (P)
 #define PmeanB 0xB2 		// B Mean Power (P)
 #define PmeanC 0xB3 		// C Mean Power (P)
 #define QmeanT 0xB4 		// Total Mean Power (Q)
@@ -198,10 +185,11 @@ The MIT License (MIT)
 #define	PmeanAH 0xD5 		// A Active Harm. Power
 #define PmeanBH 0xD6 		// B Active Harm. Power
 #define PmeanCH 0xD7 		// C Active Harm. Power
+#define IrmsN1 0xD8 		// N Sampled Current
 #define UrmsA 0xD9 			// A RMS Voltage
 #define UrmsB 0xDA 			// B RMS Voltage
 #define UrmsC 0xDB 			// C RMS Voltage
-#define IrmsN 0xDC 			// Calculated N RMS Current
+#define IrmsN0 0xDC 		// N Calculated Current (USE)
 #define IrmsA 0xDD 			// A RMS Current
 #define IrmsB 0xDE 			// B RMS Current
 #define IrmsC 0xDF 			// C RMS Current
@@ -223,14 +211,14 @@ The MIT License (MIT)
 #define IrmsBLSB 0xEE		// Lower Word (B RMS Current)
 #define IrmsCLSB 0xEF		// Lower Word (C RMS Current)
 
-/* PEAK, FREQUENCY, ANGLE & TEMP REGISTERS*/
-#define UPeakA 0xF1 		// A Voltage Peak - THD+N on ATM90E36
-#define UPeakB 0xF2 		// B Voltage Peak
-#define UPeakC 0xF3 		// C Voltage Peak
+/* THD, FREQUENCY, ANGLE & TEMP REGISTERS*/
+#define THDNUA 0xF1 		// A Voltage THD+N
+#define THDNUB 0xF2 		// B Voltage THD+N
+#define THDNUC 0xF3 		// C Voltage THD+N
 ///////////////// 0xF4	    // Reserved Register	
-#define IPeakA 0xF5 		// A Current Peak
-#define IPeakB 0xF6 		// B Current Peak
-#define IPeakC 0xF7 		// C Current Peak
+#define THDNIA 0xF5 		// A Current THD+N
+#define THDNIB 0xF6 		// B Current THD+N
+#define THDNIC 0xF7 		// V Current THD+N
 #define Freq 0xF8 			// Frequency
 #define PAngleA 0xF9 		// A Mean Phase Angle
 #define PAngleB 0xFA 		// B Mean Phase Angle
@@ -240,32 +228,16 @@ The MIT License (MIT)
 #define UangleB 0xFE		// B Voltage Phase Angle
 #define UangleC 0xFF		// C Voltage Phase Angle
 
-class ATM90E36
+	class ATM90E36
 	{
-	private:		
+	private:
+		int _energy_CS;		
 		unsigned short CommEnergyIC(unsigned char RW, unsigned short address, unsigned short val);
-		int _cs;
-		unsigned short _lineFreq;
-		unsigned short _pgagain;
-		unsigned short _ugain;
-		unsigned short _igainA;
-		unsigned short _igainB;
-		unsigned short _igainC;
-		
-		int Read32Register(signed short regh_addr, signed short regl_addr);
-		
 	public:
-		/* Construct */
-		ATM90E36(void);
-		/* Destruct */
-		~ATM90E36(void);
+		ATM90E36(int pin);
 
 		/* Initialization Functions */	
-		void begin(int pin, unsigned short lineFreq, unsigned short pgagain, unsigned short ugain, unsigned short igainA, unsigned short igainB, unsigned short igainC);
-		
-		double CalculateVIOffset(unsigned short regh_addr, unsigned short regl_addr/*, unsigned short offset_reg*/);
-		double CalculatePowerOffset(unsigned short regh_addr, unsigned short regl_addr/*, unsigned short offset_reg*/);
-		double CalibrateVI(unsigned short reg, unsigned short actualVal);
+		void begin();
 		
 		/* Main Electrical Parameters (GET)*/
 		double GetLineVoltageA();
@@ -281,9 +253,6 @@ class ATM90E36
 		double GetActivePowerB();
 		double GetActivePowerC();
 		double GetTotalActivePower();
-		
-		double GetTotalActiveFundPower();
-		double GetTotalActiveHarPower();
 
 		double GetReactivePowerA();
 		double GetReactivePowerB();
@@ -309,19 +278,19 @@ class ATM90E36
 		double GetTemperature();
 
 		/* Gain Parameters (GET)*/
-		double GetValueRegister(unsigned short registerRead);
+		unsigned short GetValueRegister(unsigned short registerRead);
 
 		/* Energy Consumption */
 		double GetImportEnergy();
-		double GetImportReactiveEnergy();
-		double GetImportApparentEnergy();
 		double GetExportEnergy();
-		double GetExportReactiveEnergy();
 
 		/* System Status */
 		unsigned short GetSysStatus0();
 		unsigned short GetSysStatus1();
 		unsigned short GetMeterStatus0();
 		unsigned short GetMeterStatus1();
+
+		/* Checksum Function */
+		bool calibrationError();
 	};
 #endif
