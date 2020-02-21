@@ -417,6 +417,42 @@ bool ATM90E36::calibrationError()
 
 }
 
+void ATM90E36::dumpAllRegs()
+{
+  for( unsigned char i = 0; i <= 0x0F; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x10; i <= 0x1D; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x30; i <= 0x3B; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x40; i <= 0x4D; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x50; i <= 0x57; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x60; i <= 0x6F; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0x80; i <= 0x99; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+  for( unsigned char i = 0xD0; i <= 0xDF; i++){
+    Serial.print(String(i,HEX)+":");
+    Serial.println(CommEnergyIC(READ, i, 0xFFFF));
+  }
+}
+
 /* BEGIN FUNCTION */
 /* 
 - Define the pin to be used as Chip Select
@@ -464,7 +500,7 @@ void ATM90E36::begin()
   
   short unsigned int checksum = 0;
   //Set metering config values (CONFIG)
-  checksum = WriteAndGetCheckSum(WRITE, ConfigStart, 0x5678, checksum); // Metering calibration startup 
+  WriteAndGetCheckSum(WRITE, ConfigStart, 0x5678, checksum); // Metering calibration startup 
   checksum = WriteAndGetCheckSum(WRITE, PLconstH, 0x0861, checksum);    // PL Constant MSB (default)
   checksum = WriteAndGetCheckSum(WRITE, PLconstL, 0xC468, checksum);    // PL Constant LSB (default)
   checksum = WriteAndGetCheckSum(WRITE, MMode0, _lineFreq, checksum);      // Mode Config (60 Hz, 3P4W)
@@ -493,19 +529,20 @@ void ATM90E36::begin()
   CommEnergyIC(WRITE, QoffsetC, 0x0000);    // C line reactive power offset
   CommEnergyIC(WRITE, CSOne, 0x0000);       // Checksum 1
   
+  checksum = 0;
   //Set metering calibration values (HARMONIC)
-  CommEnergyIC(WRITE, HarmStart, 0x5678);   // Metering calibration startup 
-  CommEnergyIC(WRITE, POffsetAF, 0x0000);   // A Fund. active power offset
-  CommEnergyIC(WRITE, POffsetBF, 0x0000);   // B Fund. active power offset
-  CommEnergyIC(WRITE, POffsetCF, 0x0000);   // C Fund. active power offset
-  CommEnergyIC(WRITE, PGainAF, 0x0000);     // A Fund. active power gain
-  CommEnergyIC(WRITE, PGainBF, 0x0000);     // B Fund. active power gain
-  CommEnergyIC(WRITE, PGainCF, 0x0000);     // C Fund. active power gain
-  CommEnergyIC(WRITE, CSTwo, 0x0000);       // Checksum 2 
+  WriteAndGetCheckSum(WRITE, HarmStart, 0x5678, checksum);   // Metering calibration startup 
+  checksum = WriteAndGetCheckSum(WRITE, POffsetAF, 0x0000, checksum);   // A Fund. active power offset
+  checksum = WriteAndGetCheckSum(WRITE, POffsetBF, 0x0000, checksum);   // B Fund. active power offset
+  checksum = WriteAndGetCheckSum(WRITE, POffsetCF, 0x0000, checksum);   // C Fund. active power offset
+  checksum = WriteAndGetCheckSum(WRITE, PGainAF, 0x0000, checksum);     // A Fund. active power gain
+  checksum = WriteAndGetCheckSum(WRITE, PGainBF, 0x0000, checksum);     // B Fund. active power gain
+  checksum = WriteAndGetCheckSum(WRITE, PGainCF, 0x0000, checksum);     // C Fund. active power gain
+  checksum = WriteAndGetCheckSum(WRITE, CSTwo, checksum, checksum);       // Checksum 2 
 
   checksum = 0;
   //Set measurement calibration values (ADJUST)
-  checksum = WriteAndGetCheckSum(WRITE, AdjStart, 0x5678, checksum);    // Measurement calibration
+  WriteAndGetCheckSum(WRITE, AdjStart, 0x5678, checksum);    // Measurement calibration
   checksum = WriteAndGetCheckSum(WRITE, UgainA, _ugain, checksum);      // A SVoltage rms gain
   checksum = WriteAndGetCheckSum(WRITE, IgainA, _igainA, checksum);      // A line current gain
   checksum = WriteAndGetCheckSum(WRITE, UoffsetA, 0x0000, checksum);    // A Voltage offset
@@ -527,5 +564,4 @@ void ATM90E36::begin()
   CommEnergyIC(WRITE, HarmStart, 0x8765);   // 0x6886 //0x5678 //8765);    
   CommEnergyIC(WRITE, AdjStart, 0x8765);    // 0x6886 //0x5678 //8765);  
 
-  CommEnergyIC(WRITE, SoftReset, 0x789A);   // Perform soft reset  
 }

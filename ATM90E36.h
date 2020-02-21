@@ -242,7 +242,7 @@
                 unsigned short WriteAndGetCheckSum(unsigned char RW, unsigned short address, unsigned short val, unsigned short checksum);
 	public:
 		ATM90E36(int pin, unsigned short lineFreq, unsigned short pgagain, unsigned short ugain, unsigned short igainA, unsigned short igainB, unsigned short igainC);
-
+		void dumpAllRegs();
 		/* Initialization Functions */	
 		void begin();
 		
