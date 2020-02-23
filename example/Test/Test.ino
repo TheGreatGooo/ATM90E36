@@ -15,10 +15,10 @@
 
 #define DEBUG_SERIAL
 
-unsigned short LineFreq = 4485;
+unsigned short LineFreq = 5231;
 unsigned short PGAGain = 21;
-unsigned short VoltageGain = 29462;
-unsigned short CurrentGainSCT013 = 25498;
+unsigned short VoltageGain = 5630;
+unsigned short CurrentGainSCT013 = 32498;
 ATM90E36 eic(15, LineFreq, PGAGain, VoltageGain, CurrentGainSCT013, CurrentGainSCT013, CurrentGainSCT013);
 
 void setup() {
